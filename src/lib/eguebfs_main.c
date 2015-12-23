@@ -23,6 +23,8 @@
 #define _FILE_OFFSET_BITS 64
 #endif
 
+#define FUSE_USE_VERSION 26
+
 #include <fuse.h>
 #include <errno.h>
 /*============================================================================*
@@ -89,7 +91,7 @@ static struct fuse_operations eguebfs_ops = {
 /*============================================================================*
  *                                   API                                      *
  *============================================================================*/
-EAPI void eguebfs_mount(Egueb_Dom_Node *doc, const char *to)
+EAPI Eina_Bool eguebfs_mount(Egueb_Dom_Node *doc, const char *to)
 {
 	//fuse_main(argc - 1, argv + 1, &eguebfs_ops, mfs);
 }
