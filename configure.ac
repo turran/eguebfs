@@ -68,18 +68,14 @@ ENS_CHECK_DOXYGEN([build_doc="yes"], [build_doc="no"])
 LT_SYS_MODULE_EXT
 
 ### Checks for libraries
+requirements_pc="egueb-dom"
+requirements_private_pc="eina egueb-dom fuse"
+PKG_CHECK_MODULES([EGUEBFS], [${requirements_pc} ${requirements_private_pc}])
 
-requirements_eguebfs_pc="${requirements_eguebfs_pc} eina >= 1.7.0 egueb-dom"
-if test "x${have_win32}" = "xyes" ; then
-   requirements_eguebfs_pc="${requirements_eguebfs_pc} evil >= 1.7.0"
-fi
+EGUEBFS_CFLAGS="${EGUEBFS_CFLAGS} -DENESIM_EXTENSION"
 
-PKG_CHECK_MODULES([REQUIREMENTS], [${requirements_eguebfs_pc}])
-AC_SUBST([requirements_eguebfs_pc])
-
-EGUEBFS_CFLAGS="${EGUEBFS_CFLAGS} ${REQUIREMENTS_CFLAGS}"
-EGUEBFS_LIBS="${REQUIREMENTS_LIBS}"
-AC_SUBST(EGUEBFS_LIBS)
+AC_SUBST([requirements_pc])
+AC_SUBST([requirements_private_pc])
 
 ### Checks for library functions
 

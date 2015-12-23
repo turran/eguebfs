@@ -15,13 +15,70 @@
  * License along with this library.
  * If not, see <http://www.gnu.org/licenses/>.
  */
+#include <fuse.h>
 /*============================================================================*
  *                                  Local                                     *
  *============================================================================*/
+/*----------------------------------------------------------------------------*
+ *                               FUSE interface                               *
+ *----------------------------------------------------------------------------*/
+static int _eguebfs_readlink(const char *path, char *buf, size_t size)
+{
+}
+
+static int _eguebfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
+		off_t offset, struct fuse_file_info *fi)
+{
+	return 0;
+}
+
+static int _eguebfs_getattr(const char *path, struct stat *stbuf)
+{
+	return 0;
+}
+
+static int _eguebfs_open(const char *path, struct fuse_file_info *fi)
+{
+	return 0;
+}
+
+static int _eguebfs_read(const char *path, char *buf, size_t size, off_t offset,
+		struct fuse_file_info *fi)
+{
+	return 0;
+}
+
+static int _eguebfs_statfs(const char *path, struct statvfs *stbuf)
+{
+	return 0;
+}
+
+static int _eguebfs_rename(const char *orig, const char *dest)
+{
+	return -EACCES;
+}
+
+static void * _eguebfs_init(struct fuse_conn_info *conn)
+{
+}
+
+static struct fuse_operations eguebfs_ops = {
+	.getattr  = _eguebfs_getattr,
+	.readlink = _eguebfs_readlink,
+	.readdir  = _eguebfs_readdir,
+	.open     = _eguebfs_open,
+	.read     = _eguebfs_read,
+	.statfs   = _eguebfs_statfs,
+	.rename   = _eguebfs_rename,
+	.init     = _eguebfs_init,
+};
 /*============================================================================*
  *                                 Global                                     *
  *============================================================================*/
 /*============================================================================*
  *                                   API                                      *
  *============================================================================*/
-
+EAPI void eguebfs_mount(Egueb_Dom_Node *doc, const char *to)
+{
+	//fuse_main(argc - 1, argv + 1, &eguebfs_ops, mfs);
+}
