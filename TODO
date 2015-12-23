@@ -1,0 +1,5 @@
++ Start implementing the FUSE interface
+The idea is that an application should mount a document and generate a tree
+This will be useful for the future SVG editor as a way to debug what's going on on the tree
+The user will be able to do shell scripts that will process the tree to for example find every
+attribute and set a value, get the value on every moment, etc
