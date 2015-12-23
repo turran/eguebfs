@@ -1,14 +1,7 @@
 What is it?
 ===========
-
-How?
-====
+EguebFS is a FUSE based filesystem for egüeb documents. It maps a XML tree into the filesystem
 
 Documentation
 =============
 
-Available bindings
-==================
-
-FAQ
-===
