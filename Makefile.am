@@ -9,6 +9,7 @@ compile \
 config.guess \
 config.h \
 config.h.in \
+config.h.in~ \
 config.sub \
 configure \
 configure-stamp \
@@ -37,10 +38,6 @@ include src/lib/Makefile.mk
 ### Binary
 
 include src/bin/Makefile.mk
-
-### Tests
-
-include src/tests/Makefile.mk
 
 EXTRA_DIST += \
 AUTHORS \

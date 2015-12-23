@@ -15,7 +15,16 @@
  * License along with this library.
  * If not, see <http://www.gnu.org/licenses/>.
  */
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#ifndef _FILE_OFFSET_BITS
+#define _FILE_OFFSET_BITS 64
+#endif
+
 #include <fuse.h>
+#include <errno.h>
 /*============================================================================*
  *                                  Local                                     *
  *============================================================================*/
@@ -24,6 +33,7 @@
  *----------------------------------------------------------------------------*/
 static int _eguebfs_readlink(const char *path, char *buf, size_t size)
 {
+	return 0;
 }
 
 static int _eguebfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
@@ -60,6 +70,7 @@ static int _eguebfs_rename(const char *orig, const char *dest)
 
 static void * _eguebfs_init(struct fuse_conn_info *conn)
 {
+	return NULL;
 }
 
 static struct fuse_operations eguebfs_ops = {

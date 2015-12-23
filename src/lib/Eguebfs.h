@@ -19,9 +19,13 @@
 #ifndef _EGUEBFS_H
 #define _EGUEBFS_H
 
+#include <Eina.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include "eguebfs_build.h"
 
 
 #ifdef __cplusplus
