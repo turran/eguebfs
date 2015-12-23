@@ -3,14 +3,11 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 pkgincludedir=@pkgincludedir@-@VMAJ@
-datarootdir=@datarootdir@
-pkgdatadir=@pkgdatadir@
-descriptionsdir=@pkgdatadir@/descriptions
 
-
-Name: Ender
+Name: Eguebfs
 Version: @VERSION@
-Description: Ender
-Requires.private: @requirements_ender_pc@
-Libs: -L${libdir} -lender
+Description: Eguebfs
+Requires.private: @requirements_private_pc@
+Requires: @requirements_pc@
+Libs: -L${libdir} -leguebfs
 Cflags: -I${pkgincludedir}
