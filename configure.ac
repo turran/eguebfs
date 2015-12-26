@@ -52,7 +52,6 @@ AM_CONDITIONAL([HAVE_WIN32], [test "x${have_win32}" = "xyes"])
 
 AC_PROG_CC
 AM_PROG_CC_C_O
-ENS_CHECK_COMPILER_FLAGS([EGUEBFS], [-Wall])
 
 AC_SYS_LARGEFILE
 
@@ -70,11 +69,11 @@ ENS_CHECK_DOXYGEN([build_doc="yes"], [build_doc="no"])
 LT_SYS_MODULE_EXT
 
 ### Checks for libraries
-requirements_pc="egueb-dom"
-requirements_private_pc="eina egueb-dom fuse"
+requirements_pc="eina egueb-dom"
+requirements_private_pc="fuse"
 PKG_CHECK_MODULES([EGUEBFS], [${requirements_pc} ${requirements_private_pc}])
 
-EGUEBFS_CFLAGS="${EGUEBFS_CFLAGS} -DENESIM_EXTENSION"
+ENS_CHECK_COMPILER_FLAGS([EGUEBFS], [-Wall])
 
 AC_SUBST([requirements_pc])
 AC_SUBST([requirements_private_pc])
