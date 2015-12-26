@@ -20,6 +20,7 @@
 #define _EGUEBFS_H
 
 #include <Eina.h>
+#include <Egueb_Dom.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,6 +28,7 @@ extern "C" {
 
 #include "eguebfs_build.h"
 
+EAPI Eina_Bool eguebfs_mount(Egueb_Dom_Node *doc, const char *to);
 
 #ifdef __cplusplus
 }
