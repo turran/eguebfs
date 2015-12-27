@@ -5,7 +5,8 @@
 int main(int arcg, char **argv)
 {
 	Eguebfs *efs;
-	Egueb_Dom_Node *doc;
+	Egueb_Dom_Node *doc = NULL;
+	Egueb_Dom_Window *w;
 	Enesim_Stream *stream;
 	Eina_Bool ret;
 
@@ -25,10 +26,20 @@ int main(int arcg, char **argv)
 		printf("Fail to parse file %s\n", argv[1]);
 		goto shutdown;
 	}
+	/* create the window */
+	w = efl_egueb_window_auto_new(egueb_dom_node_ref(doc), 0, 0, -1, -1);
+	if (!w)
+	{
+		printf("Fail to create window\n");
+		goto shutdown;
+	}
 	/* mount and wait */
-	efs = eguebfs_mount(doc, argv[2]);
+	efs = eguebfs_mount(egueb_dom_node_ref(doc), argv[2]);
 	ecore_main_loop_begin();
 	eguebfs_umount(efs);
+	egueb_dom_window_unref(w);
+no_window:
+	egueb_dom_node_unref(doc);
 shutdown:
 	efl_egueb_shutdown();
 	ecore_shutdown();
