@@ -4,15 +4,14 @@ EguebFS is a FUSE based filesystem for [Egüeb](https://github.com/turran/egueb)
 
 How?
 ====
-Using the provided binary eguebfs in the form
-
+1. Using the provided binary eguebfs in the form
 ```bash
 eguebfs FILE MOUNTPOINT
 ```
-
 Where FILE has to be any XML file that [Egüeb](https://github.com/turran/egueb) knows.
 
-Or by embedding it into your own application
+2. Embedding it into your own application
+Check the contents of [eguebfs.c](https://github.com/turran/eguebfs/blob/master/src/bin/eguebfs.c) to see how it can be done.
 
 Documentation
 =============
