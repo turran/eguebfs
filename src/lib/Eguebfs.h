@@ -28,7 +28,9 @@ extern "C" {
 
 #include "eguebfs_build.h"
 
-EAPI Eina_Bool eguebfs_mount(Egueb_Dom_Node *doc, const char *to);
+typedef struct _Eguebfs Eguebfs;
+EAPI Eguebfs * eguebfs_mount(Egueb_Dom_Node *doc, const char *to);
+EAPI void eguebfs_umount(Eguebfs *thiz);
 
 #ifdef __cplusplus
 }

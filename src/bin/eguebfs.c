@@ -2,6 +2,7 @@
 
 int main(int arcg, char **argv)
 {
+	Eguebfs *efs;
 	Egueb_Dom_Node *doc;
 	Enesim_Stream *stream;
 	Eina_Bool ret;
@@ -20,7 +21,8 @@ int main(int arcg, char **argv)
 		printf("Fail to parse file %s\n", argv[1]);
 		goto shutdown;
 	}
-	eguebfs_mount(doc, argv[2]);
+	efs = eguebfs_mount(doc, argv[2]);
+	eguebfs_umount(efs);
 shutdown:
 
 	egueb_dom_shutdown();

@@ -71,6 +71,14 @@ typedef struct _Eguebfs_File
 	Egueb_Dom_Node *n;
 } Eguebfs_File;
 
+struct _Eguebfs
+{
+	Eina_Thread thread;
+	Egueb_Dom_Node *doc;
+	char *mountpoint;
+	struct fuse_chan *chan;
+	struct fuse *fuse;
+};
 /*============================================================================*
  *                                  Local                                     *
  *============================================================================*/
@@ -327,6 +335,17 @@ done:
 	return ret;
 }
 /*----------------------------------------------------------------------------*
+ *                              Thread interface                              *
+ *----------------------------------------------------------------------------*/
+static void * _eguebfs_thread_main(void *data, Eina_Thread t)
+{
+	Eguebfs *thiz = data;
+
+	fuse_loop(thiz->fuse);
+	printf("exiting\n");
+	return NULL;
+}
+/*----------------------------------------------------------------------------*
  *                               FUSE interface                               *
  *----------------------------------------------------------------------------*/
 static int _eguebfs_readlink(const char *path, char *buf, size_t size)
@@ -338,15 +357,15 @@ static int _eguebfs_readlink(const char *path, char *buf, size_t size)
 static int _eguebfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 		off_t offset, struct fuse_file_info *fi)
 {
+	Eguebfs *thiz;
 	Eguebfs_File f = { 0 };
-	Egueb_Dom_Node *doc;
 	struct fuse_context *ctx;
 
 	ctx = fuse_get_context();
-	doc = ctx->private_data;
+	thiz = ctx->private_data;
 
 	printf("readdir %s\n", path);
-	if (!_eguebfs_file_find(doc, path, &f))
+	if (!_eguebfs_file_find(thiz->doc, path, &f))
 		return -ENOENT;
 
 	/* default files */
@@ -369,18 +388,18 @@ static int _eguebfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
 static int _eguebfs_getattr(const char *path, struct stat *stbuf)
 {
+	Eguebfs *thiz;
 	Eguebfs_File f = { 0 };
-	Egueb_Dom_Node *doc;
 	Egueb_Dom_String *value;
 	Eina_Bool fetched;
 	struct fuse_context *ctx;
 	int ret = 0;
 
 	ctx = fuse_get_context();
-	doc = ctx->private_data;
+	thiz = ctx->private_data;
 
-	printf("getattr %p %s\n", doc, path);
-	if (!_eguebfs_file_find(doc, path, &f))
+	printf("getattr %p %s\n", thiz->doc, path);
+	if (!_eguebfs_file_find(thiz->doc, path, &f))
 		return -ENOENT;
 
 	memset(stbuf, 0, sizeof(struct stat));
@@ -460,15 +479,15 @@ static int _eguebfs_getattr(const char *path, struct stat *stbuf)
 
 static int _eguebfs_open(const char *path, struct fuse_file_info *fi)
 {
+	Eguebfs *thiz;
 	Eguebfs_File f = { 0 };
-	Egueb_Dom_Node *doc;
 	struct fuse_context *ctx;
 
 	ctx = fuse_get_context();
-	doc = ctx->private_data;
+	thiz = ctx->private_data;
 
 	printf("open %s\n", path);
-	if (!_eguebfs_file_find(doc, path, &f))
+	if (!_eguebfs_file_find(thiz->doc, path, &f))
 		return -ENOENT;
 
 	egueb_dom_node_unref(f.n);
@@ -478,18 +497,18 @@ static int _eguebfs_open(const char *path, struct fuse_file_info *fi)
 static int _eguebfs_read(const char *path, char *buf, size_t size, off_t offset,
 		struct fuse_file_info *fi)
 {
+	Eguebfs *thiz;
 	Eguebfs_File f = { 0 };
-	Egueb_Dom_Node *doc;
 	Egueb_Dom_String *value = NULL;
 	Eina_Bool fetched = EINA_FALSE;
 	struct fuse_context *ctx;
 	int ret = 0;
 
 	ctx = fuse_get_context();
-	doc = ctx->private_data;
+	thiz = ctx->private_data;
 
 	printf("read %s\n", path);
-	if (!_eguebfs_file_find(doc, path, &f))
+	if (!_eguebfs_file_find(thiz->doc, path, &f))
 		return -ENOENT;
 
 	switch (f.type)
@@ -542,14 +561,21 @@ static int _eguebfs_read(const char *path, char *buf, size_t size, off_t offset,
 
 static void * _eguebfs_init(struct fuse_conn_info *conn)
 {
-	Egueb_Dom_Node *doc;
+	Eguebfs *thiz;
 	struct fuse_context *ctx;
 
 	ctx = fuse_get_context();
-	doc = ctx->private_data;
+	thiz = ctx->private_data;
 
-	printf("init %p\n", doc);
-	return doc;
+	printf("init %p\n", thiz);
+	return thiz;
+}
+
+static void _eguebfs_destroy(void *data)
+{
+	Egueb_Dom_Node *doc = data;
+	printf("destroy %p\n", data);
+	egueb_dom_node_unref(doc);
 }
 
 static struct fuse_operations eguebfs_ops = {
@@ -559,6 +585,7 @@ static struct fuse_operations eguebfs_ops = {
 	.open     = _eguebfs_open,
 	.read     = _eguebfs_read,
 	.init     = _eguebfs_init,
+	.destroy  = _eguebfs_destroy,
 };
 /*============================================================================*
  *                                 Global                                     *
@@ -566,8 +593,11 @@ static struct fuse_operations eguebfs_ops = {
 /*============================================================================*
  *                                   API                                      *
  *============================================================================*/
-EAPI Eina_Bool eguebfs_mount(Egueb_Dom_Node *doc, const char *to)
+EAPI Eguebfs * eguebfs_mount(Egueb_Dom_Node *doc, const char *to)
 {
+	Eguebfs *thiz;
+	struct fuse_chan *chan;
+	struct fuse_args args;
 	char *params[] = {
 		"eguebfs_mount",
 		"-f",
@@ -575,7 +605,38 @@ EAPI Eina_Bool eguebfs_mount(Egueb_Dom_Node *doc, const char *to)
 		NULL
 	};
 
-	printf("doc = %p\n", doc);
-	fuse_main(3, params, &eguebfs_ops, doc);
-	return EINA_TRUE;
+	if (!doc) return NULL;
+	if (!to) return NULL;
+
+	chan = fuse_mount(to, NULL);
+	if (!chan)
+	{
+		printf("no chan\n");
+		return NULL;
+	}
+
+	thiz = calloc(1, sizeof(Eguebfs));
+	thiz->doc = doc;
+	thiz->mountpoint = strdup(to);
+	thiz->chan = chan;
+	thiz->fuse = fuse_new(thiz->chan, NULL, &eguebfs_ops, sizeof(eguebfs_ops), thiz);
+
+	/* create the thread and start processing there */
+	if (!eina_thread_create(&thiz->thread, EINA_THREAD_NORMAL, -1,
+			_eguebfs_thread_main, thiz))
+	{
+		printf("cannot create thread\n");
+	}
+	return thiz;
+}
+
+EAPI void eguebfs_umount(Eguebfs *thiz)
+{
+	printf("umount 0\n");
+	fuse_unmount(thiz->mountpoint, thiz->chan);
+	printf("umount 1\n");
+	fuse_destroy(thiz->fuse);
+	printf("umount 2\n");
+	eina_thread_join(thiz->thread);
+	printf("umount 3\n");
 }
