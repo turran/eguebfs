@@ -462,7 +462,7 @@ static int _eguebfs_getattr(const char *path, struct stat *stbuf)
 
 		case EGUEBFS_FILE_TYPE_ATTR_FINAL:
 		fetched = egueb_dom_attr_final_string_get(f.n, &value);
-		stbuf->st_mode = S_IFREG | 0644;
+		stbuf->st_mode = S_IFREG | 0444;
 		stbuf->st_nlink = 1;
 		if (fetched)
 		{
@@ -557,6 +557,59 @@ static int _eguebfs_read(const char *path, char *buf, size_t size, off_t offset,
 	return size;
 }
 
+static int _eguebfs_write(const char *path, const char *buf, size_t size, off_t offset,
+		struct fuse_file_info *fi)
+{
+	Eguebfs *thiz;
+	Eguebfs_File f = { 0 };
+	Egueb_Dom_String *value = NULL;
+	Eina_Bool written = EINA_FALSE;
+	struct fuse_context *ctx;
+
+	ctx = fuse_get_context();
+	thiz = ctx->private_data;
+
+	printf("write %s\n", path);
+	if (!_eguebfs_file_find(thiz->doc, path, &f))
+		return -ENOENT;
+
+	switch (f.type)
+	{
+		case EGUEBFS_FILE_TYPE_NODE:
+		case EGUEBFS_FILE_TYPE_ATTR_FINAL:
+		break;
+
+		case EGUEBFS_FILE_TYPE_ATTR_BASE:
+		value = egueb_dom_string_new_with_length(buf, size);
+		written = egueb_dom_attr_string_set(f.n, EGUEB_DOM_ATTR_TYPE_BASE, value);
+		egueb_dom_string_unref(value);
+		break;
+
+		case EGUEBFS_FILE_TYPE_ATTR_ANIM:
+		value = egueb_dom_string_new_with_length(buf, size);
+		written = egueb_dom_attr_string_set(f.n, EGUEB_DOM_ATTR_TYPE_ANIMATED, value);
+		egueb_dom_string_unref(value);
+		break;
+
+		case EGUEBFS_FILE_TYPE_ATTR_STYLED:
+		value = egueb_dom_string_new_with_length(buf, size);
+		written = egueb_dom_attr_string_set(f.n, EGUEB_DOM_ATTR_TYPE_STYLED, value);
+		egueb_dom_string_unref(value);
+		break;
+	}
+
+	egueb_dom_node_unref(f.n);
+	if (!written)
+		return -EINVAL;
+	else
+		return size;
+}
+
+static int _eguebfs_truncate(const char * path, off_t offset)
+{
+	return 0;
+}
+
 static void * _eguebfs_init(struct fuse_conn_info *conn)
 {
 	Eguebfs *thiz;
@@ -575,6 +628,8 @@ static struct fuse_operations eguebfs_ops = {
 	.readdir  = _eguebfs_readdir,
 	.open     = _eguebfs_open,
 	.read     = _eguebfs_read,
+	.write    = _eguebfs_write,
+	.truncate = _eguebfs_truncate,
 	.init     = _eguebfs_init,
 };
 /*============================================================================*
