@@ -428,7 +428,7 @@ static int _eguebfs_getattr(const char *path, struct stat *stbuf)
 		fetched = egueb_dom_attr_string_get(f.n, EGUEB_DOM_ATTR_TYPE_BASE, &value);
 		stbuf->st_mode = S_IFREG | 0644;
 		stbuf->st_nlink = 1;
-		if (fetched)
+		if (fetched && egueb_dom_string_is_valid(value))
 		{
 			const char *content = egueb_dom_string_string_get(value);
 			stbuf->st_size = strlen(content);
@@ -440,7 +440,7 @@ static int _eguebfs_getattr(const char *path, struct stat *stbuf)
 		fetched = egueb_dom_attr_string_get(f.n, EGUEB_DOM_ATTR_TYPE_ANIMATED, &value);
 		stbuf->st_mode = S_IFREG | 0644;
 		stbuf->st_nlink = 1;
-		if (fetched)
+		if (fetched && egueb_dom_string_is_valid(value))
 		{
 			const char *content = egueb_dom_string_string_get(value);
 			stbuf->st_size = strlen(content);
@@ -452,7 +452,7 @@ static int _eguebfs_getattr(const char *path, struct stat *stbuf)
 		fetched = egueb_dom_attr_string_get(f.n, EGUEB_DOM_ATTR_TYPE_STYLED, &value);
 		stbuf->st_mode = S_IFREG | 0644;
 		stbuf->st_nlink = 1;
-		if (fetched)
+		if (fetched && egueb_dom_string_is_valid(value))
 		{
 			const char *content = egueb_dom_string_string_get(value);
 			stbuf->st_size = strlen(content);
@@ -464,7 +464,7 @@ static int _eguebfs_getattr(const char *path, struct stat *stbuf)
 		fetched = egueb_dom_attr_final_string_get(f.n, &value);
 		stbuf->st_mode = S_IFREG | 0444;
 		stbuf->st_nlink = 1;
-		if (fetched)
+		if (fetched && egueb_dom_string_is_valid(value))
 		{
 			const char *content = egueb_dom_string_string_get(value);
 			stbuf->st_size = strlen(content);
