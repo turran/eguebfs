@@ -502,7 +502,6 @@ static int _eguebfs_read(const char *path, char *buf, size_t size, off_t offset,
 	Egueb_Dom_String *value = NULL;
 	Eina_Bool fetched = EINA_FALSE;
 	struct fuse_context *ctx;
-	int ret = 0;
 
 	ctx = fuse_get_context();
 	thiz = ctx->private_data;
@@ -573,9 +572,10 @@ static void * _eguebfs_init(struct fuse_conn_info *conn)
 
 static void _eguebfs_destroy(void *data)
 {
-	Egueb_Dom_Node *doc = data;
+	Eguebfs *thiz = data;
+
 	printf("destroy %p\n", data);
-	egueb_dom_node_unref(doc);
+	egueb_dom_node_unref(thiz->doc);
 }
 
 static struct fuse_operations eguebfs_ops = {
@@ -597,13 +597,6 @@ EAPI Eguebfs * eguebfs_mount(Egueb_Dom_Node *doc, const char *to)
 {
 	Eguebfs *thiz;
 	struct fuse_chan *chan;
-	struct fuse_args args;
-	char *params[] = {
-		"eguebfs_mount",
-		"-f",
-		to,
-		NULL
-	};
 
 	if (!doc) return NULL;
 	if (!to) return NULL;
