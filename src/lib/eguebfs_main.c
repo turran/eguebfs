@@ -342,7 +342,6 @@ static void * _eguebfs_thread_main(void *data, Eina_Thread t)
 	Eguebfs *thiz = data;
 
 	fuse_loop(thiz->fuse);
-	printf("exiting\n");
 	return NULL;
 }
 /*----------------------------------------------------------------------------*
@@ -570,14 +569,6 @@ static void * _eguebfs_init(struct fuse_conn_info *conn)
 	return thiz;
 }
 
-static void _eguebfs_destroy(void *data)
-{
-	Eguebfs *thiz = data;
-
-	printf("destroy %p\n", data);
-	egueb_dom_node_unref(thiz->doc);
-}
-
 static struct fuse_operations eguebfs_ops = {
 	.getattr  = _eguebfs_getattr,
 	.readlink = _eguebfs_readlink,
@@ -585,7 +576,6 @@ static struct fuse_operations eguebfs_ops = {
 	.open     = _eguebfs_open,
 	.read     = _eguebfs_read,
 	.init     = _eguebfs_init,
-	.destroy  = _eguebfs_destroy,
 };
 /*============================================================================*
  *                                 Global                                     *
@@ -598,15 +588,14 @@ EAPI Eguebfs * eguebfs_mount(Egueb_Dom_Node *doc, const char *to)
 	Eguebfs *thiz;
 	struct fuse_chan *chan;
 
-	if (!doc) return NULL;
-	if (!to) return NULL;
+	if (!doc)
+		return NULL;
+	if (!to)
+		goto no_chan;
 
 	chan = fuse_mount(to, NULL);
 	if (!chan)
-	{
-		printf("no chan\n");
-		return NULL;
-	}
+		goto no_chan;
 
 	thiz = calloc(1, sizeof(Eguebfs));
 	thiz->doc = doc;
@@ -617,19 +606,25 @@ EAPI Eguebfs * eguebfs_mount(Egueb_Dom_Node *doc, const char *to)
 	/* create the thread and start processing there */
 	if (!eina_thread_create(&thiz->thread, EINA_THREAD_NORMAL, -1,
 			_eguebfs_thread_main, thiz))
-	{
-		printf("cannot create thread\n");
-	}
+		goto no_thread;
 	return thiz;
+
+no_thread:
+	fuse_unmount(thiz->mountpoint, thiz->chan);
+	fuse_destroy(thiz->fuse);
+	free(thiz->mountpoint);
+	free(thiz);
+no_chan:
+	egueb_dom_node_unref(doc);
+	return NULL;
 }
 
 EAPI void eguebfs_umount(Eguebfs *thiz)
 {
-	printf("umount 0\n");
 	fuse_unmount(thiz->mountpoint, thiz->chan);
-	printf("umount 1\n");
 	fuse_destroy(thiz->fuse);
-	printf("umount 2\n");
 	eina_thread_join(thiz->thread);
-	printf("umount 3\n");
+	egueb_dom_node_unref(thiz->doc);
+	free(thiz->mountpoint);
+	free(thiz);
 }
