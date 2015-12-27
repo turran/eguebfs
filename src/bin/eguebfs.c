@@ -1,4 +1,6 @@
 #include <Eguebfs.h>
+#include <Ecore.h>
+#include <Efl_Egueb.h>
 
 int main(int arcg, char **argv)
 {
@@ -7,7 +9,9 @@ int main(int arcg, char **argv)
 	Enesim_Stream *stream;
 	Eina_Bool ret;
 
-	egueb_dom_init();
+	ecore_init();
+	efl_egueb_init();
+
 	stream = enesim_stream_file_new(argv[1], "r");
 	if (!stream)
 	{
@@ -21,10 +25,12 @@ int main(int arcg, char **argv)
 		printf("Fail to parse file %s\n", argv[1]);
 		goto shutdown;
 	}
+	/* mount and wait */
 	efs = eguebfs_mount(doc, argv[2]);
+	ecore_main_loop_begin();
 	eguebfs_umount(efs);
 shutdown:
-
-	egueb_dom_shutdown();
+	efl_egueb_shutdown();
+	ecore_shutdown();
 	return 0;
 }

@@ -73,6 +73,9 @@ requirements_pc="eina egueb-dom"
 requirements_private_pc="fuse"
 PKG_CHECK_MODULES([EGUEBFS], [${requirements_pc} ${requirements_private_pc}])
 
+requirements_bin_pc="eina egueb-dom efl-egueb ecore"
+PKG_CHECK_MODULES([EGUEBFS_BIN], [${requirements_bin_pc}])
+
 ENS_CHECK_COMPILER_FLAGS([EGUEBFS], [-Wall])
 
 AC_SUBST([requirements_pc])
