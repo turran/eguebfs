@@ -448,7 +448,10 @@ static int _eguebfs_getattr(const char *path, struct stat *stbuf)
 
 	DBG("getattr %s", path);
 	if (!_eguebfs_file_find(thiz->doc, path, &f))
+	{
+		WRN("No file '%s' found", path);
 		return -ENOENT;
+	}
 
 	memset(stbuf, 0, sizeof(struct stat));
 	switch (f.type)
@@ -657,7 +660,7 @@ static int _eguebfs_write(const char *path, const char *buf, size_t size, off_t 
 				case EGUEB_DOM_NODE_TYPE_TEXT:
 				case EGUEB_DOM_NODE_TYPE_CDATA_SECTION:
 				value = egueb_dom_string_new_with_length(buf, size);
-				egueb_dom_character_data_data_delete(f.n, -1, 0, NULL);
+				egueb_dom_character_data_data_delete(f.n, 0, -1, NULL);
 				egueb_dom_character_data_data_append(f.n, value, NULL);
 				written = EINA_TRUE;
 				break;
@@ -698,9 +701,54 @@ static int _eguebfs_write(const char *path, const char *buf, size_t size, off_t 
 		return size;
 }
 
-static int _eguebfs_truncate(const char * path, off_t offset)
+static int _eguebfs_truncate(const char *path, off_t new_length)
 {
+#if 0
+	Eguebfs *thiz;
+	Eguebfs_File f = { 0 };
+	Egueb_Dom_Node_Type type;
+	struct fuse_context *ctx;
+	int ret = -EINVAL;
+
+	ctx = fuse_get_context();
+	thiz = ctx->private_data;
+#endif
+
+	ERR("truncate %s", path);
+#if 1
 	return 0;
+#else
+	if (!_eguebfs_file_find(thiz->doc, path, &f))
+		return -ENOENT;
+
+	if (f.type != EGUEBFS_FILE_TYPE_NODE)
+		goto done;
+
+	type = egueb_dom_node_type_get(f.n);
+	switch (type)
+	{
+		case EGUEB_DOM_NODE_TYPE_TEXT:
+		case EGUEB_DOM_NODE_TYPE_CDATA_SECTION:
+		{
+			int length;
+
+			length = egueb_dom_character_data_length_get(f.n);
+			ret = 0;
+			if (new_length < length)
+			{
+				egueb_dom_character_data_data_delete(f.n, 0, length - new_length, NULL);
+			}
+		}
+		break;
+
+		default:
+		ERR("Unsupported node type '%d'", type);
+		break;
+	}
+done:
+	egueb_dom_node_unref(f.n);
+	return ret;
+#endif
 }
 
 static int _eguebfs_mkdir(const char *path, mode_t m)
