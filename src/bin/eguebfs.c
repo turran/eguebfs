@@ -11,6 +11,7 @@ int main(int arcg, char **argv)
 	Eina_Bool ret;
 
 	ecore_init();
+	eguebfs_init();
 	efl_egueb_init();
 
 	stream = enesim_stream_file_new(argv[1], "r");
@@ -41,6 +42,7 @@ int main(int arcg, char **argv)
 no_window:
 	egueb_dom_node_unref(doc);
 shutdown:
+	eguebfs_shutdown();
 	efl_egueb_shutdown();
 	ecore_shutdown();
 	return 0;

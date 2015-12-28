@@ -29,6 +29,10 @@ extern "C" {
 #include "eguebfs_build.h"
 
 typedef struct _Eguebfs Eguebfs;
+
+EAPI void eguebfs_init(void);
+EAPI void eguebfs_shutdown(void);
+
 EAPI Eguebfs * eguebfs_mount(Egueb_Dom_Node *doc, const char *to);
 EAPI void eguebfs_umount(Eguebfs *thiz);
 

@@ -32,6 +32,12 @@
 #include <fuse.h>
 #include <errno.h>
 #include <stdio.h>
+
+#define ERR(...) EINA_LOG_DOM_ERR(eguebfs_log_dom, __VA_ARGS__)
+#define WRN(...) EINA_LOG_DOM_WARN(eguebfs_log_dom, __VA_ARGS__)
+#define INF(...) EINA_LOG_DOM_INFO(eguebfs_log_dom, __VA_ARGS__)
+#define DBG(...) EINA_LOG_DOM_DBG(eguebfs_log_dom, __VA_ARGS__)
+#define CRI(...) EINA_LOG_DOM_CRIT(eguebfs_log_dom, __VA_ARGS__)
 /*
  * For a XML file like this:
  * <svg>
@@ -82,6 +88,9 @@ struct _Eguebfs
 /*============================================================================*
  *                                  Local                                     *
  *============================================================================*/
+static int _init = 0;
+static int eguebfs_log_dom = -1;
+
 static Eina_Bool _eguebfs_name_is_element(const char *p, char **rname, int *count)
 {
 	const char *child_depth;
@@ -390,7 +399,7 @@ static void * _eguebfs_thread_main(void *data, Eina_Thread t)
  *----------------------------------------------------------------------------*/
 static int _eguebfs_readlink(const char *path, char *buf, size_t size)
 {
-	printf("readlink %s\n", path);
+	ERR("readlink %s", path);
 	return 0;
 }
 
@@ -404,7 +413,7 @@ static int _eguebfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 	ctx = fuse_get_context();
 	thiz = ctx->private_data;
 
-	printf("readdir %s\n", path);
+	ERR("readdir %s", path);
 	if (!_eguebfs_file_find(thiz->doc, path, &f))
 		return -ENOENT;
 
@@ -438,7 +447,7 @@ static int _eguebfs_getattr(const char *path, struct stat *stbuf)
 	ctx = fuse_get_context();
 	thiz = ctx->private_data;
 
-	printf("getattr %p %s\n", thiz->doc, path);
+	ERR("getattr %s", path);
 	if (!_eguebfs_file_find(thiz->doc, path, &f))
 		return -ENOENT;
 
@@ -526,7 +535,7 @@ static int _eguebfs_open(const char *path, struct fuse_file_info *fi)
 	ctx = fuse_get_context();
 	thiz = ctx->private_data;
 
-	printf("open %s\n", path);
+	ERR("open %s", path);
 	if (!_eguebfs_file_find(thiz->doc, path, &f))
 		return -ENOENT;
 
@@ -546,7 +555,7 @@ static int _eguebfs_read(const char *path, char *buf, size_t size, off_t offset,
 	ctx = fuse_get_context();
 	thiz = ctx->private_data;
 
-	printf("read %s\n", path);
+	ERR("read %s", path);
 	if (!_eguebfs_file_find(thiz->doc, path, &f))
 		return -ENOENT;
 
@@ -610,7 +619,7 @@ static int _eguebfs_write(const char *path, const char *buf, size_t size, off_t 
 	ctx = fuse_get_context();
 	thiz = ctx->private_data;
 
-	printf("write %s\n", path);
+	ERR("write %s", path);
 	if (!_eguebfs_file_find(thiz->doc, path, &f))
 		return -ENOENT;
 
@@ -665,7 +674,7 @@ static int _eguebfs_mkdir(const char *path, mode_t m)
 	ctx = fuse_get_context();
 	thiz = ctx->private_data;
 
-	printf("mkdir %s\n", path);
+	ERR("mkdir %s", path);
 	chpath = strrchr(path, '/');
 	if (!chpath)
 		return -EINVAL;
@@ -732,7 +741,7 @@ static int _eguebfs_rmdir(const char *path)
 	ctx = fuse_get_context();
 	thiz = ctx->private_data;
 
-	printf("rmdir %s\n", path);
+	ERR("rmdir %s", path);
 	if (!_eguebfs_file_find(thiz->doc, path, &f))
 		return -ENOENT;
 
@@ -758,7 +767,7 @@ static void * _eguebfs_init(struct fuse_conn_info *conn)
 	ctx = fuse_get_context();
 	thiz = ctx->private_data;
 
-	printf("init %p\n", thiz);
+	ERR("init %p", thiz);
 	return thiz;
 }
 
@@ -780,6 +789,25 @@ static struct fuse_operations eguebfs_ops = {
 /*============================================================================*
  *                                   API                                      *
  *============================================================================*/
+EAPI void eguebfs_init(void)
+{
+	if (!_init++)
+	{
+		eina_init();
+		eguebfs_log_dom = eina_log_domain_register("eguebfs", NULL);
+	}
+}
+
+EAPI void eguebfs_shutdown(void)
+{
+	if (_init == 1)
+	{
+		eina_log_domain_unregister(eguebfs_log_dom);
+		eina_shutdown();
+	}
+	_init--;
+}
+
 EAPI Eguebfs * eguebfs_mount(Egueb_Dom_Node *doc, const char *to)
 {
 	Eguebfs *thiz;
