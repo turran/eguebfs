@@ -16,6 +16,7 @@ How?
 
 Examples
 ========
+On the video you will see a screencast of a mounted SVG file and the live editing.
 [![Foo](https://i.vimeocdn.com/video/549595310_640.webp)](https://vimeo.com/150186589)
  
 
