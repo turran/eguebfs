@@ -82,6 +82,54 @@ struct _Eguebfs
 /*============================================================================*
  *                                  Local                                     *
  *============================================================================*/
+static Eina_Bool _eguebfs_name_is_element(const char *p, char **rname, int *count)
+{
+	const char *child_depth;
+
+	child_depth = strchr(p, '@');
+	if (child_depth)
+	{
+		char *name;
+
+		/* get the count */
+		*count = strtoul(child_depth + 1, NULL, 10);
+		/* get the real name */
+		name = malloc(child_depth - p + 1);
+		strncpy(name, p, child_depth - p);
+		name[child_depth - p] = '\0';
+		*rname = name;
+
+		return EINA_TRUE;
+	}
+	else
+	{
+		return EINA_FALSE;
+	}
+}
+
+static Eina_Bool _eguebfs_file_node_delete(Eguebfs_File *f)
+{
+	Egueb_Dom_Node_Type type;
+
+	type = egueb_dom_node_type_get(f->n);
+	switch (type)
+	{
+		case EGUEB_DOM_NODE_TYPE_ELEMENT:
+		{
+			Egueb_Dom_Node *parent;
+			parent = egueb_dom_node_parent_get(f->n);
+			egueb_dom_node_child_remove(parent,
+					egueb_dom_node_ref(f->n), NULL);
+			egueb_dom_node_unref(parent);
+		}
+		break;
+
+		default:
+		return EINA_FALSE;
+	}
+	return EINA_TRUE;
+}
+
 static Eina_Bool _eguebfs_file_node_find(Eguebfs_File *f, const char *p)
 {
 	Egueb_Dom_Node_Type type;
@@ -116,22 +164,15 @@ static Eina_Bool _eguebfs_file_node_find(Eguebfs_File *f, const char *p)
 		/* only attributes or child nodes */
 		case EGUEB_DOM_NODE_TYPE_ELEMENT:
 		{
-			const char *child_depth;
+			char *real_name;
+			int depth;
 
-			child_depth = strchr(p, '@');
-			if (child_depth)
+			if (_eguebfs_name_is_element(p, &real_name, &depth))
 			{
 				Egueb_Dom_Node *child;
 				Egueb_Dom_Node *found = NULL;
 				Eina_Bool ret = EINA_FALSE;
-				char *real_name;
 				int count = 0;
-				int depth = strtoul(child_depth + 1, NULL, 10);
-
-				/* get the real name */
-				real_name = malloc(child_depth - p + 1);
-				strncpy(real_name, p, child_depth - p);
-				real_name[child_depth - p] = '\0';
 
 				child = egueb_dom_element_child_first_get(f->n);
 				while (child)
@@ -610,6 +651,105 @@ static int _eguebfs_truncate(const char * path, off_t offset)
 	return 0;
 }
 
+static int _eguebfs_mkdir(const char *path, mode_t m)
+{
+	Eguebfs *thiz;
+	Eguebfs_File f = { 0 };
+	struct fuse_context *ctx;
+	char *bpath;
+	char *chpath;
+	char *real_name;
+	int depth;
+	int ret = -EINVAL;
+
+	ctx = fuse_get_context();
+	thiz = ctx->private_data;
+
+	printf("mkdir %s\n", path);
+	chpath = strrchr(path, '/');
+	if (!chpath)
+		return -EINVAL;
+	bpath = strndup(path, chpath - path);
+	/* get the path before the last path entry */
+	if (!_eguebfs_file_find(thiz->doc, bpath, &f))
+		goto done;
+
+	if (f.type != EGUEBFS_FILE_TYPE_NODE)
+		goto no_file;
+
+	if (egueb_dom_node_type_get(f.n) != EGUEB_DOM_NODE_TYPE_ELEMENT)
+		goto no_file;
+
+	if (_eguebfs_name_is_element(chpath + 1, &real_name, &depth))
+	{
+		Egueb_Dom_Node *child;
+		int count = 0;
+
+		/* make sure that the child is valid */
+		child = egueb_dom_element_child_first_get(f.n);
+		while (child)
+		{
+			Egueb_Dom_Node *tmp;
+			Egueb_Dom_String *name;
+
+			name = egueb_dom_node_name_get(child);
+			if (!strcmp(egueb_dom_string_string_get(name), real_name))
+				count++;
+			tmp = egueb_dom_element_sibling_next_get(child);
+			egueb_dom_node_unref(child);
+			child = tmp;
+		}
+		if (depth == count + 1)
+		{
+			Egueb_Dom_String *name;
+
+			name = egueb_dom_string_new_with_string(real_name);
+			child = egueb_dom_document_element_create(thiz->doc, name, NULL);
+			if (child)
+			{
+				if (egueb_dom_node_child_append(f.n, child, NULL))
+					ret = 0;
+			}
+			egueb_dom_string_unref(name);
+		}
+		free(real_name);
+	}
+
+no_file:
+	egueb_dom_node_unref(f.n);
+done:
+	free(bpath);
+	return ret;
+}
+
+static int _eguebfs_rmdir(const char *path)
+{
+	Eguebfs *thiz;
+	Eguebfs_File f = { 0 };
+	struct fuse_context *ctx;
+	int ret = -EINVAL;
+
+	ctx = fuse_get_context();
+	thiz = ctx->private_data;
+
+	printf("rmdir %s\n", path);
+	if (!_eguebfs_file_find(thiz->doc, path, &f))
+		return -ENOENT;
+
+	switch (f.type)
+	{
+		case EGUEBFS_FILE_TYPE_NODE:
+		if (_eguebfs_file_node_delete(&f))
+			ret = 0;
+		break;
+
+		default:
+		break;
+	}
+	egueb_dom_node_unref(f.n);
+	return ret;
+}
+
 static void * _eguebfs_init(struct fuse_conn_info *conn)
 {
 	Eguebfs *thiz;
@@ -631,6 +771,8 @@ static struct fuse_operations eguebfs_ops = {
 	.write    = _eguebfs_write,
 	.truncate = _eguebfs_truncate,
 	.init     = _eguebfs_init,
+	.rmdir    = _eguebfs_rmdir,
+	.mkdir    = _eguebfs_mkdir,
 };
 /*============================================================================*
  *                                 Global                                     *
