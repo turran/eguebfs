@@ -11,6 +11,7 @@ How?
   Where FILE has to be any XML file that [Egüeb](https://github.com/turran/egueb) knows.
 
 2. Embedding it into your own application
+  
   Check the contents of [eguebfs.c](https://github.com/turran/eguebfs/blob/master/src/bin/eguebfs.c) to see how it can be done.
 
 Documentation
