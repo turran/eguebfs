@@ -14,6 +14,11 @@ How?
   
   Check the contents of [eguebfs.c](https://github.com/turran/eguebfs/blob/master/src/bin/eguebfs.c) to see how it can be done.
 
+Examples
+========
+[![Foo](https://i.vimeocdn.com/video/549595310_640.webp)](https://vimeo.com/150186589)
+ 
+
 Documentation
 =============
 For API reference check out the automatically generated [doxygen](https://turran.github.io/eguebfs/docs/index.html) documentation
