@@ -1,4 +1,4 @@
-+ Add support for cdata and text
++ Add support for offsets on the write fop
 + Add options to eguebfs, like:
   -d to daemonize
   -g to create the window
