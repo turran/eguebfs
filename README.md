@@ -15,11 +15,11 @@ How?
   Check the contents of [eguebfs.c](https://github.com/turran/eguebfs/blob/master/src/bin/eguebfs.c) to see how it can be done.
 
 Once the XML file is mounted, you can:
-* List elements. Every element is a directory suffixed by a @ and a number, which is the order of the element, given that on a filesystem you can not maintain the XML tree order.
+* List elements. Every element is a directory suffixed by a @ and a number. Such number is the index of the element of that name, given that on a XML file you can have multiple elements of the same name.
 * List text nodes and cdata nodes. Every character node is a file. It can be read and written.
 * List attributes as part of every node. Attributes are directories under elements.
-* Get an attribute value by reading the base, animated, styled or final files under an attribute directory
-* Set an attribute value by writing the base, animated and styled files under an attribute directory
+* Get an attribute value by reading the base, animated, styled or final files under an attribute directory.
+* Set an attribute value by writing the base, animated and styled files under an attribute directory.
 
 Examples
 ========
