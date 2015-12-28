@@ -4,6 +4,5 @@
   -v to be verbose? or use the debug?
   -h to get the help
   -v to get the version
-+ Support mkdir to create elements
 + Change egueb node map named to not be live
 + Support MT on egueb
