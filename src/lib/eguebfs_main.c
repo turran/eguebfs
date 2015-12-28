@@ -183,7 +183,7 @@ static Eina_Bool _eguebfs_file_node_find(Eguebfs_File *f, const char *p)
 				Eina_Bool ret = EINA_FALSE;
 				int count = 0;
 
-				child = egueb_dom_element_child_first_get(f->n);
+				child = egueb_dom_node_child_first_get(f->n);
 				while (child)
 				{
 					Egueb_Dom_Node *tmp;
@@ -201,7 +201,7 @@ static Eina_Bool _eguebfs_file_node_find(Eguebfs_File *f, const char *p)
 						}
 					}
 					
-					tmp = egueb_dom_element_sibling_next_get(child);
+					tmp = egueb_dom_node_sibling_next_get(child);
 					egueb_dom_node_unref(child);
 					child = tmp;
 				}
@@ -280,7 +280,7 @@ static void _eguebfs_file_node_list(Eguebfs_File *f, void *buf, fuse_fill_dir_t 
 			int i;
 
 			/* add every children */
-			child = egueb_dom_element_child_first_get(f->n);
+			child = egueb_dom_node_child_first_get(f->n);
 			repetitions = eina_hash_string_superfast_new(free);
 			while (child)
 			{
@@ -307,7 +307,7 @@ static void _eguebfs_file_node_list(Eguebfs_File *f, void *buf, fuse_fill_dir_t 
 				free(final_name);
 
 				/* next child */
-				tmp = egueb_dom_element_sibling_next_get(child);
+				tmp = egueb_dom_node_sibling_next_get(child);
 				egueb_dom_node_unref(child);
 				child = tmp;
 			}
@@ -324,7 +324,6 @@ static void _eguebfs_file_node_list(Eguebfs_File *f, void *buf, fuse_fill_dir_t 
 				filler(buf, egueb_dom_string_string_get(name), NULL, 0);
 			}
 			egueb_dom_node_map_named_unref(attrs);
-			/* TODO Add the #text and #cdata? */
 		}
 		break;
 
@@ -413,7 +412,7 @@ static int _eguebfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 	ctx = fuse_get_context();
 	thiz = ctx->private_data;
 
-	ERR("readdir %s", path);
+	DBG("readdir %s", path);
 	if (!_eguebfs_file_find(thiz->doc, path, &f))
 		return -ENOENT;
 
@@ -447,7 +446,7 @@ static int _eguebfs_getattr(const char *path, struct stat *stbuf)
 	ctx = fuse_get_context();
 	thiz = ctx->private_data;
 
-	ERR("getattr %s", path);
+	DBG("getattr %s", path);
 	if (!_eguebfs_file_find(thiz->doc, path, &f))
 		return -ENOENT;
 
@@ -467,7 +466,15 @@ static int _eguebfs_getattr(const char *path, struct stat *stbuf)
 				stbuf->st_nlink = 2;
 				break;
 
+				case EGUEB_DOM_NODE_TYPE_TEXT:
+				case EGUEB_DOM_NODE_TYPE_CDATA_SECTION:
+				stbuf->st_mode = S_IFREG | 0644;
+				stbuf->st_nlink = 1;
+				stbuf->st_size = egueb_dom_character_data_length_get(f.n);
+				break;
+
 				default:
+				ERR("Unsupported node type '%d'", type);
 				ret = -ENOENT;
 				break;
 			}
@@ -535,7 +542,7 @@ static int _eguebfs_open(const char *path, struct fuse_file_info *fi)
 	ctx = fuse_get_context();
 	thiz = ctx->private_data;
 
-	ERR("open %s", path);
+	DBG("open %s", path);
 	if (!_eguebfs_file_find(thiz->doc, path, &f))
 		return -ENOENT;
 
@@ -555,13 +562,29 @@ static int _eguebfs_read(const char *path, char *buf, size_t size, off_t offset,
 	ctx = fuse_get_context();
 	thiz = ctx->private_data;
 
-	ERR("read %s", path);
+	DBG("read %s", path);
 	if (!_eguebfs_file_find(thiz->doc, path, &f))
 		return -ENOENT;
 
 	switch (f.type)
 	{
 		case EGUEBFS_FILE_TYPE_NODE:
+		{
+			Egueb_Dom_Node_Type type;
+			type = egueb_dom_node_type_get(f.n);
+			switch (type)
+			{
+				case EGUEB_DOM_NODE_TYPE_TEXT:
+				case EGUEB_DOM_NODE_TYPE_CDATA_SECTION:
+				value = egueb_dom_character_data_data_get(f.n);
+				fetched = EINA_TRUE;
+				break;
+
+				default:
+				ERR("Unsupported node type '%d'", type);
+				break;
+			}
+		}
 		break;
 
 		case EGUEBFS_FILE_TYPE_ATTR_BASE:
@@ -619,13 +642,33 @@ static int _eguebfs_write(const char *path, const char *buf, size_t size, off_t 
 	ctx = fuse_get_context();
 	thiz = ctx->private_data;
 
-	ERR("write %s", path);
+	DBG("write %s", path);
 	if (!_eguebfs_file_find(thiz->doc, path, &f))
 		return -ENOENT;
 
 	switch (f.type)
 	{
 		case EGUEBFS_FILE_TYPE_NODE:
+		{
+			Egueb_Dom_Node_Type type;
+			type = egueb_dom_node_type_get(f.n);
+			switch (type)
+			{
+				case EGUEB_DOM_NODE_TYPE_TEXT:
+				case EGUEB_DOM_NODE_TYPE_CDATA_SECTION:
+				value = egueb_dom_string_new_with_length(buf, size);
+				egueb_dom_character_data_data_delete(f.n, -1, 0, NULL);
+				egueb_dom_character_data_data_append(f.n, value, NULL);
+				written = EINA_TRUE;
+				break;
+
+				default:
+				ERR("Unsupported node type '%d'", type);
+				break;
+			}
+		}
+		break;
+
 		case EGUEBFS_FILE_TYPE_ATTR_FINAL:
 		break;
 
@@ -674,7 +717,7 @@ static int _eguebfs_mkdir(const char *path, mode_t m)
 	ctx = fuse_get_context();
 	thiz = ctx->private_data;
 
-	ERR("mkdir %s", path);
+	DBG("mkdir %s", path);
 	chpath = strrchr(path, '/');
 	if (!chpath)
 		return -EINVAL;
@@ -695,7 +738,7 @@ static int _eguebfs_mkdir(const char *path, mode_t m)
 		int count = 0;
 
 		/* make sure that the child is valid */
-		child = egueb_dom_element_child_first_get(f.n);
+		child = egueb_dom_node_child_first_get(f.n);
 		while (child)
 		{
 			Egueb_Dom_Node *tmp;
@@ -704,7 +747,7 @@ static int _eguebfs_mkdir(const char *path, mode_t m)
 			name = egueb_dom_node_name_get(child);
 			if (!strcmp(egueb_dom_string_string_get(name), real_name))
 				count++;
-			tmp = egueb_dom_element_sibling_next_get(child);
+			tmp = egueb_dom_node_sibling_next_get(child);
 			egueb_dom_node_unref(child);
 			child = tmp;
 		}
@@ -741,7 +784,7 @@ static int _eguebfs_rmdir(const char *path)
 	ctx = fuse_get_context();
 	thiz = ctx->private_data;
 
-	ERR("rmdir %s", path);
+	DBG("rmdir %s", path);
 	if (!_eguebfs_file_find(thiz->doc, path, &f))
 		return -ENOENT;
 
@@ -767,7 +810,7 @@ static void * _eguebfs_init(struct fuse_conn_info *conn)
 	ctx = fuse_get_context();
 	thiz = ctx->private_data;
 
-	ERR("init %p", thiz);
+	DBG("init %p", thiz);
 	return thiz;
 }
 
