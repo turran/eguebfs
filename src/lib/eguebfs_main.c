@@ -708,7 +708,6 @@ static int _eguebfs_truncate(const char *path, off_t new_length)
 {
 	Eguebfs *thiz;
 	Eguebfs_File f = { 0 };
-	Egueb_Dom_Node_Type type;
 	struct fuse_context *ctx;
 	int ret = -EINVAL;
 
@@ -720,31 +719,47 @@ static int _eguebfs_truncate(const char *path, off_t new_length)
 	if (!_eguebfs_file_find(thiz->doc, path, &f))
 		return -ENOENT;
 
-	if (f.type != EGUEBFS_FILE_TYPE_NODE)
-		goto done;
-
-	type = egueb_dom_node_type_get(f.n);
-	switch (type)
+	switch (f.type)
 	{
-		case EGUEB_DOM_NODE_TYPE_TEXT:
-		case EGUEB_DOM_NODE_TYPE_CDATA_SECTION:
+		case EGUEBFS_FILE_TYPE_NODE:
 		{
-			int length;
+			Egueb_Dom_Node_Type type;
 
-			length = egueb_dom_character_data_length_get(f.n);
-			ret = 0;
-			if (new_length < length)
+			type = egueb_dom_node_type_get(f.n);
+			switch (type)
 			{
-				egueb_dom_character_data_data_delete(f.n, 0, length - new_length, NULL);
+				case EGUEB_DOM_NODE_TYPE_TEXT:
+				case EGUEB_DOM_NODE_TYPE_CDATA_SECTION:
+				{
+					int length;
+
+					length = egueb_dom_character_data_length_get(f.n);
+					ret = 0;
+					if (new_length < length)
+					{
+						egueb_dom_character_data_data_delete(f.n, 0, length - new_length, NULL);
+					}
+				}
+				break;
+
+				default:
+				ERR("Unsupported node type '%d'", type);
+				break;
 			}
+
 		}
 		break;
 
+		case EGUEBFS_FILE_TYPE_ATTR_BASE:
+		case EGUEBFS_FILE_TYPE_ATTR_ANIM:
+		case EGUEBFS_FILE_TYPE_ATTR_STYLED:
+		ret = 0;
+		break;
+
 		default:
-		ERR("Unsupported node type '%d'", type);
 		break;
 	}
-done:
+
 	egueb_dom_node_unref(f.n);
 	return ret;
 }
