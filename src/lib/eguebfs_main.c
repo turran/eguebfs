@@ -350,10 +350,12 @@ static Eina_Bool _eguebfs_file_find(Egueb_Dom_Node *doc, const char *path,
 	Eina_Array *split;
 	Eina_Iterator *it;
 	const char *p;
+	char *npath;
 
+	npath = strdup(path);
 	f->type = EGUEBFS_FILE_TYPE_NODE;
 	f->n = egueb_dom_node_ref(doc);
-	split = eina_file_split(path);
+	split = eina_file_split(npath);
 	it = eina_array_iterator_new(split);
 	while (eina_iterator_next(it, (void **)&p))
 	{
@@ -381,6 +383,7 @@ done:
 	}
 	eina_iterator_free(it);
 	eina_array_free(split);
+	free(npath);
 	return ret;
 }
 /*----------------------------------------------------------------------------*
