@@ -706,7 +706,6 @@ static int _eguebfs_write(const char *path, const char *buf, size_t size, off_t 
 
 static int _eguebfs_truncate(const char *path, off_t new_length)
 {
-#if 0
 	Eguebfs *thiz;
 	Eguebfs_File f = { 0 };
 	Egueb_Dom_Node_Type type;
@@ -715,12 +714,9 @@ static int _eguebfs_truncate(const char *path, off_t new_length)
 
 	ctx = fuse_get_context();
 	thiz = ctx->private_data;
-#endif
 
-	ERR("truncate %s", path);
-#if 1
-	return 0;
-#else
+	DBG("truncate %s", path);
+
 	if (!_eguebfs_file_find(thiz->doc, path, &f))
 		return -ENOENT;
 
@@ -751,7 +747,6 @@ static int _eguebfs_truncate(const char *path, off_t new_length)
 done:
 	egueb_dom_node_unref(f.n);
 	return ret;
-#endif
 }
 
 static int _eguebfs_mkdir(const char *path, mode_t m)
