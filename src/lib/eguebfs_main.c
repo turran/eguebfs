@@ -901,6 +901,9 @@ EAPI Eguebfs * eguebfs_mount(Egueb_Dom_Node *doc, const char *to)
 {
 	Eguebfs *thiz;
 	struct fuse_chan *chan;
+#if 0
+	struct fuse_args args = FUSE_ARGS_INIT(0, NULL);
+#endif
 
 	if (!doc)
 		return NULL;
@@ -911,10 +914,19 @@ EAPI Eguebfs * eguebfs_mount(Egueb_Dom_Node *doc, const char *to)
 	if (!chan)
 		goto no_chan;
 
+#if 0
+	fuse_opt_add_arg(&args, "");
+	fuse_opt_add_arg(&args, "-odebug");
+#endif
+
 	thiz = calloc(1, sizeof(Eguebfs));
 	thiz->doc = doc;
 	thiz->mountpoint = strdup(to);
 	thiz->chan = chan;
+#if 0
+	thiz->fuse = fuse_new(thiz->chan, &args, &eguebfs_ops, sizeof(eguebfs_ops), thiz);
+	fuse_opt_free_args(&args);
+#endif
 	thiz->fuse = fuse_new(thiz->chan, NULL, &eguebfs_ops, sizeof(eguebfs_ops), thiz);
 
 	/* create the thread and start processing there */
