@@ -157,7 +157,7 @@ static Eina_Bool _eguebfs_file_node_find(Eguebfs_File *f, const char *p)
 				return EINA_FALSE;
 			}
 			name = egueb_dom_node_name_get(topmost);
-			if (!strcmp(egueb_dom_string_string_get(name), p))
+			if (!strcmp(egueb_dom_string_chars_get(name), p))
 			{
 				egueb_dom_node_unref(f->n);
 				f->n = topmost;
@@ -190,7 +190,7 @@ static Eina_Bool _eguebfs_file_node_find(Eguebfs_File *f, const char *p)
 					Egueb_Dom_String *name;
 
 					name = egueb_dom_node_name_get(child);
-					if (!strcmp(egueb_dom_string_string_get(name), real_name))
+					if (!strcmp(egueb_dom_string_chars_get(name), real_name))
 					{
 						count++;
 						if (count == depth)
@@ -215,7 +215,7 @@ static Eina_Bool _eguebfs_file_node_find(Eguebfs_File *f, const char *p)
 				Egueb_Dom_Node *attr;
 				Egueb_Dom_String *attr_name;
 
-				attr_name = egueb_dom_string_new_with_string(p);
+				attr_name = egueb_dom_string_new_with_chars(p);
 				/* check if it is an attribute */
 				attr = egueb_dom_element_attribute_node_get(f->n, attr_name);
 				egueb_dom_string_unref(attr_name);
@@ -265,7 +265,7 @@ static void _eguebfs_file_node_list(Eguebfs_File *f, void *buf, fuse_fill_dir_t 
 			{
 				Egueb_Dom_String *name;
 				name = egueb_dom_node_name_get(topmost);
-				filler(buf, egueb_dom_string_string_get(name), NULL, 0);
+				filler(buf, egueb_dom_string_chars_get(name), NULL, 0);
 				egueb_dom_string_unref(name);
 				egueb_dom_node_unref(topmost);
 			}
@@ -290,18 +290,18 @@ static void _eguebfs_file_node_list(Eguebfs_File *f, void *buf, fuse_fill_dir_t 
 				int *count;
 
 				name = egueb_dom_node_name_get(child);
-				count = eina_hash_find(repetitions, egueb_dom_string_string_get(name));
+				count = eina_hash_find(repetitions, egueb_dom_string_chars_get(name));
 				if (!count)
 				{
 					count = malloc(sizeof(int));
 					*count = 1;
-					eina_hash_add(repetitions, egueb_dom_string_string_get(name), count);
+					eina_hash_add(repetitions, egueb_dom_string_chars_get(name), count);
 				}
 				else
 				{
 					*count = *count + 1;
 				}
-				if (asprintf(&final_name, "%s@%d", egueb_dom_string_string_get(name), *count) < 0)
+				if (asprintf(&final_name, "%s@%d", egueb_dom_string_chars_get(name), *count) < 0)
 					continue;
 				filler(buf, final_name, NULL, 0);
 				free(final_name);
@@ -321,7 +321,7 @@ static void _eguebfs_file_node_list(Eguebfs_File *f, void *buf, fuse_fill_dir_t 
 
 				attr = egueb_dom_node_map_named_at(attrs, i);
 				name = egueb_dom_node_name_get(attr);
-				filler(buf, egueb_dom_string_string_get(name), NULL, 0);
+				filler(buf, egueb_dom_string_chars_get(name), NULL, 0);
 			}
 			egueb_dom_node_map_named_unref(attrs);
 		}
@@ -493,7 +493,7 @@ static int _eguebfs_getattr(const char *path, struct stat *stbuf)
 		stbuf->st_nlink = 1;
 		if (fetched && egueb_dom_string_is_valid(value))
 		{
-			const char *content = egueb_dom_string_string_get(value);
+			const char *content = egueb_dom_string_chars_get(value);
 			stbuf->st_size = strlen(content);
 			egueb_dom_string_unref(value);
 		}
@@ -505,7 +505,7 @@ static int _eguebfs_getattr(const char *path, struct stat *stbuf)
 		stbuf->st_nlink = 1;
 		if (fetched && egueb_dom_string_is_valid(value))
 		{
-			const char *content = egueb_dom_string_string_get(value);
+			const char *content = egueb_dom_string_chars_get(value);
 			stbuf->st_size = strlen(content);
 			egueb_dom_string_unref(value);
 		}
@@ -517,7 +517,7 @@ static int _eguebfs_getattr(const char *path, struct stat *stbuf)
 		stbuf->st_nlink = 1;
 		if (fetched && egueb_dom_string_is_valid(value))
 		{
-			const char *content = egueb_dom_string_string_get(value);
+			const char *content = egueb_dom_string_chars_get(value);
 			stbuf->st_size = strlen(content);
 			egueb_dom_string_unref(value);
 		}
@@ -529,7 +529,7 @@ static int _eguebfs_getattr(const char *path, struct stat *stbuf)
 		stbuf->st_nlink = 1;
 		if (fetched && egueb_dom_string_is_valid(value))
 		{
-			const char *content = egueb_dom_string_string_get(value);
+			const char *content = egueb_dom_string_chars_get(value);
 			stbuf->st_size = strlen(content);
 			egueb_dom_string_unref(value);
 		}
@@ -612,7 +612,7 @@ static int _eguebfs_read(const char *path, char *buf, size_t size, off_t offset,
 
 	if (fetched)
 	{
-		const char *content = egueb_dom_string_string_get(value);
+		const char *content = egueb_dom_string_chars_get(value);
 		size_t len;
 
 		len = strlen(content);
@@ -806,7 +806,7 @@ static int _eguebfs_mkdir(const char *path, mode_t m)
 			Egueb_Dom_String *name;
 
 			name = egueb_dom_node_name_get(child);
-			if (!strcmp(egueb_dom_string_string_get(name), real_name))
+			if (!strcmp(egueb_dom_string_chars_get(name), real_name))
 				count++;
 			tmp = egueb_dom_node_sibling_next_get(child);
 			egueb_dom_node_unref(child);
@@ -816,7 +816,7 @@ static int _eguebfs_mkdir(const char *path, mode_t m)
 		{
 			Egueb_Dom_String *name;
 
-			name = egueb_dom_string_new_with_string(real_name);
+			name = egueb_dom_string_new_with_chars(real_name);
 			child = egueb_dom_document_element_create(thiz->doc, name, NULL);
 			if (child)
 			{
